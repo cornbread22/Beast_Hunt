@@ -1,4 +1,5 @@
 const PROFILE_HEADERS = ["playerId", "nickname", "updatedAt"];
+const API_VERSION = "2026-10-30-daily-date-fallback-1";
 const SCORE_HEADERS = [
   "playerId",
   "difficulty",
@@ -31,6 +32,7 @@ function doGet(event) {
   } catch (error) {
     result = { ok: false, error: error.message || String(error) };
   }
+  result.apiVersion = API_VERSION;
 
   return ContentService
     .createTextOutput(`${callback}(${JSON.stringify(result)});`)
@@ -183,11 +185,12 @@ function getUtcDateKey_(date) {
 }
 
 function scoreMatchesUtcDate_(row, date, timezone) {
+  const storedDateMatches = normalizeScoreDate_(row[4], timezone) === date;
   const achievedAt = Number(row[6]);
-  if (Number.isFinite(achievedAt) && achievedAt > 0) {
-    return getUtcDateKey_(new Date(achievedAt)) === date;
-  }
-  return normalizeScoreDate_(row[4], timezone) === date;
+  const timestampMatches = Number.isFinite(achievedAt)
+    && achievedAt > 0
+    && getUtcDateKey_(new Date(achievedAt)) === date;
+  return timestampMatches || storedDateMatches;
 }
 
 function normalizeScoreDate_(value, timezone) {

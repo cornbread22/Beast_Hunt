@@ -15,7 +15,9 @@ The shared leaderboard uses a Google Sheet and a small Apps Script web app. Ther
 
 When you change the Apps Script later, open **Deploy → Manage deployments → Edit**, choose **New version**, and redeploy.
 
-If daily scores stop appearing, replace the Apps Script editor contents with the latest `GoogleAppsScript.gs`, save, then deploy a **New version**. Daily scores are matched using their UTC submission timestamp rather than Sheets' timezone-sensitive date conversion; older rows without a timestamp fall back to their stored date.
+If daily scores stop appearing, replace the Apps Script editor contents with the latest `GoogleAppsScript.gs`, save, then deploy a **New version**. Daily scores match either their UTC submission timestamp or their stored date, to handle Sheets converting date-looking values into timezone-sensitive date cells.
+
+To confirm the latest backend version is active, a leaderboard response includes an `apiVersion` field. The current source version is `2026-10-30-daily-date-fallback-1`.
 
 ## What it does
 
