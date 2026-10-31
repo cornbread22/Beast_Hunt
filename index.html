@@ -426,6 +426,39 @@
       line-height: 1.5;
     }
 
+    #score-save-dialog {
+      width: min(calc(100% - 32px), 420px);
+      padding: 24px;
+      border: 1px solid var(--md-outline);
+      border-radius: 16px;
+      background: #111416;
+      color: #e6f4f6;
+      text-align: center;
+      box-shadow: 0 16px 48px #000b;
+    }
+
+    #score-save-dialog::backdrop {
+      background: #000c;
+      backdrop-filter: blur(3px);
+    }
+
+    #score-save-dialog h2 {
+      margin: 0 0 10px;
+      color: var(--md-primary);
+    }
+
+    #score-save-dialog p {
+      margin: 0 0 20px;
+      line-height: 1.5;
+    }
+
+    .score-save-dialog-actions {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
     .leaderboard-profile,
     .leaderboard-filters {
       display: flex;
@@ -1046,10 +1079,10 @@
       <h2 id="leaderboard-title">High scores</h2>
       <p class="leaderboard-help">Ranked by fewest moves. Your anonymous player ID is stored in this browser; no account or password is needed.</p>
       <form id="nickname-form" class="leaderboard-profile">
-        <label for="nickname">Player nickname (2-16 letters, numbers, or underscores)
+        <label for="nickname">Username shown on the leaderboard (2-16 letters, numbers, or underscores)
           <input id="nickname" name="nickname" type="text" minlength="2" maxlength="16" pattern="[A-Za-z0-9_]{2,16}" autocomplete="nickname" required>
         </label>
-        <button type="submit">Save nickname</button>
+        <button type="submit">Save username</button>
       </form>
       <div class="leaderboard-filters">
         <label for="leaderboard-period">Period
@@ -1071,6 +1104,14 @@
       <a href="Beast_Hunt_v1.0.0.APK" download>Download APK</a>
     </p>
   </main>
+  <dialog id="score-save-dialog" aria-labelledby="score-save-title" aria-describedby="score-save-message">
+    <h2 id="score-save-title">Score not saved</h2>
+    <p id="score-save-message">Enter a username to save this score.</p>
+    <div class="score-save-dialog-actions">
+      <button id="enter-username" type="button" autofocus>Enter username</button>
+      <button id="dismiss-score-save" type="button">Not now</button>
+    </div>
+  </dialog>
   <div id="cutscene" class="cutscene-overlay" role="dialog" aria-modal="true" aria-labelledby="cutscene-title" hidden>
     <div class="cutscene-card">
       <h2 id="cutscene-title" class="visually-hidden">Cutscene</h2>
@@ -1148,6 +1189,9 @@
     const fireButton = document.querySelector("#fire");
     const cancelAimButton = document.querySelector("#cancel-aim");
     const restartButton = document.querySelector("#restart");
+    const scoreSaveDialog = document.querySelector("#score-save-dialog");
+    const enterUsernameButton = document.querySelector("#enter-username");
+    const dismissScoreSaveButton = document.querySelector("#dismiss-score-save");
     const cutscene = document.querySelector("#cutscene");
     const cutsceneStage = document.querySelector("#cutscene-stage");
     const cutsceneSkip = document.querySelector("#cutscene-skip");
@@ -1181,6 +1225,7 @@
     let discoveredTiles;
     let leaderboardPlayerId = "";
     let currentNickname = "";
+    const pendingWinningScores = [];
 
     function showLeaderboardError(action, error) {
       leaderboardStatus.textContent = `${action}: ${error.message || error}`;
@@ -1321,23 +1366,38 @@
       currentNickname = nickname;
       localStorage.setItem("beastHuntNickname", nickname);
       leaderboardStatus.textContent = `Nickname saved as ${nickname}.`;
-      await refreshLeaderboard();
+      if (pendingWinningScores.length) {
+        await submitWinningScores();
+      } else {
+        await refreshLeaderboard();
+      }
     }
 
-    async function submitWinningScore() {
-      if (!window.BEAST_HUNT_LEADERBOARD_URL || !currentNickname) {
-        leaderboardStatus.textContent = "Win not submitted: connect the leaderboard and choose a nickname first.";
+    async function submitWinningScores() {
+      if (!pendingWinningScores.length) {
+        await refreshLeaderboard();
         return;
       }
+      if (!window.BEAST_HUNT_LEADERBOARD_URL) {
+        leaderboardStatus.textContent = "Win not submitted: the online leaderboard is not connected.";
+        return;
+      }
+      if (!currentNickname) {
+        leaderboardStatus.textContent = "Your win is not saved yet. Save a username above to submit it.";
+        return;
+      }
+
       try {
-        await leaderboardRequest({
-          action: "submit",
-          uid: leaderboardPlayerId,
-          nickname: currentNickname,
-          difficulty: difficultySelect.value,
-          mapSize: SIZE,
-          moves
-        });
+        while (pendingWinningScores.length) {
+          const score = pendingWinningScores[0];
+          await leaderboardRequest({
+            action: "submit",
+            uid: leaderboardPlayerId,
+            nickname: currentNickname,
+            ...score
+          });
+          pendingWinningScores.shift();
+        }
       } catch (requestError) {
         showLeaderboardError("Win was not submitted", requestError);
         return;
@@ -1655,7 +1715,19 @@
       aiming = false;
       message.classList.toggle("result-lose", !won);
       message.textContent = `${result} ${won ? "You win!" : "You lose."}`;
-      if (won) void submitWinningScore();
+      if (won) {
+        pendingWinningScores.push({
+          difficulty: difficultySelect.value,
+          mapSize: SIZE,
+          moves
+        });
+        if (currentNickname) {
+          void submitWinningScores();
+        } else {
+          scoreSaveDialog.showModal();
+          leaderboardStatus.textContent = "Win pending: save a username to submit this score. It will remain pending while this page stays open.";
+        }
+      }
       restartButton.textContent = "Play again";
       render();
     }
@@ -1892,6 +1964,12 @@
       button.addEventListener("click", () => chooseAimDirection(direction));
     }
     restartButton.addEventListener("click", startGame);
+    enterUsernameButton.addEventListener("click", () => {
+      scoreSaveDialog.close();
+      nicknameInput.scrollIntoView({ behavior: "smooth", block: "center" });
+      nicknameInput.focus({ preventScroll: true });
+    });
+    dismissScoreSaveButton.addEventListener("click", () => scoreSaveDialog.close());
     cutsceneSkip.addEventListener("click", completeCutscene);
     document.addEventListener("keydown", handleKeydown);
     startGame();

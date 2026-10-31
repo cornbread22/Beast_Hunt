@@ -11,14 +11,14 @@ The shared leaderboard uses a Google Sheet and a small Apps Script web app. Ther
 5. Click **Deploy → New deployment**, choose the **Web app** type, set **Execute as** to **Me**, and set access to **Anyone**. Click **Deploy** and approve access.
 6. Copy the web app URL ending in `/exec`.
 7. In `index.html`, paste that URL into `window.BEAST_HUNT_LEADERBOARD_URL`.
-8. Serve the game over HTTP (for example with VS Code Live Server) and reload it. Choose and save a nickname in **High scores**.
+8. Serve the game over HTTP (for example with VS Code Live Server) and reload it. Save a username in **High scores** before or after a win. If you enter one after winning, the pending score is submitted automatically while the game page remains open.
 
 When you change the Apps Script later, open **Deploy → Manage deployments → Edit**, choose **New version**, and redeploy.
 
-If daily scores stop appearing, replace the Apps Script editor contents with the latest `GoogleAppsScript.gs`, save, then deploy a **New version**. The script handles Sheets converting date-looking cell values into date objects; keeping the deployed script up to date is important for UTC daily score matching.
+If daily scores stop appearing, replace the Apps Script editor contents with the latest `GoogleAppsScript.gs`, save, then deploy a **New version**. Daily scores are matched using their UTC submission timestamp rather than Sheets' timezone-sensitive date conversion; older rows without a timestamp fall back to their stored date.
 
 ## What it does
 
-The sheet keeps one profile per browser identity and the best daily and all-time winning score per difficulty and map size. Daily scores use UTC. Only the top 10 scores are shown. Players need no Google sign-in; the browser saves a random player ID and nickname locally.
+The sheet keeps one profile per browser identity and the best daily and all-time winning score per difficulty and map size. Daily scores use UTC. Only the top 10 players are shown; duplicate legacy rows are reduced to each player's best score. Zero-move wins are valid when the beast is adjacent to the starting tile. Players need no Google sign-in; the browser saves a random player ID and username locally. A win without a saved username remains pending only for the current open game page; reload or closing the page loses that pending score.
 
 This is intended for a casual game, not a secure competition: the public web app accepts score submissions from browsers, so someone could fake scores. Clearing browser data creates a new player identity. Apps Script also has Google usage quotas.

@@ -79,7 +79,7 @@ function submitScore_(params) {
   if (!["easy", "normal", "hard", "impossible"].includes(difficulty)
     || ![7, 9, 11].includes(mapSize)
     || !Number.isInteger(moves)
-    || moves < 1
+    || moves < 0
     || moves > 10000) {
     throw new Error("Invalid score.");
   }
@@ -104,7 +104,9 @@ function submitScore_(params) {
         && row[1] === difficulty
         && Number(row[2]) === mapSize
         && row[3] === period
-        && normalizeScoreDate_(row[4], spreadsheetTimezone) === date
+        && (period === "daily"
+          ? scoreMatchesUtcDate_(row, date, spreadsheetTimezone)
+          : normalizeScoreDate_(row[4], spreadsheetTimezone) === date)
       );
       if (existingIndex === -1) {
         const storedDate = period === "daily" ? `UTC:${date}` : date;
@@ -144,28 +146,48 @@ function getLeaderboard_(params) {
   const profileRows = getSheet_("Profiles").getDataRange().getValues();
   const nicknames = new Map(profileRows.slice(1).map(row => [row[0], row[1]]));
   const scoreRows = getSheet_("Scores").getDataRange().getValues();
-  return scoreRows.slice(1)
-    .filter(row =>
-      row[1] === difficulty
-      && Number(row[2]) === mapSize
-      && row[3] === period
-      && normalizeScoreDate_(row[4], spreadsheetTimezone) === date
-      && nicknames.has(row[0])
-    )
-    .map(row => ({
+  const bestByPlayer = new Map();
+  for (const row of scoreRows.slice(1)) {
+    if (
+      row[1] !== difficulty
+      || Number(row[2]) !== mapSize
+      || row[3] !== period
+      || (period === "daily" && !scoreMatchesUtcDate_(row, date, spreadsheetTimezone))
+      || !nicknames.has(row[0])
+    ) {
+      continue;
+    }
+
+    const score = {
       uid: row[0],
       nickname: nicknames.get(row[0]),
       moves: Number(row[5]),
       achievedAt: Number(row[6]),
       is_you: row[0] === playerId
-    }))
+    };
+    const previous = bestByPlayer.get(score.uid);
+    if (!previous || score.moves < previous.moves
+      || (score.moves === previous.moves && score.achievedAt < previous.achievedAt)) {
+      bestByPlayer.set(score.uid, score);
+    }
+  }
+
+  return Array.from(bestByPlayer.values())
     .sort((a, b) => a.moves - b.moves || a.achievedAt - b.achievedAt)
     .slice(0, 10)
     .map(({ nickname, moves, is_you }) => ({ nickname, moves, is_you }));
 }
 
-function getUtcDateKey_() {
-  return Utilities.formatDate(new Date(), "UTC", "yyyy-MM-dd");
+function getUtcDateKey_(date) {
+  return Utilities.formatDate(date || new Date(), "UTC", "yyyy-MM-dd");
+}
+
+function scoreMatchesUtcDate_(row, date, timezone) {
+  const achievedAt = Number(row[6]);
+  if (Number.isFinite(achievedAt) && achievedAt > 0) {
+    return getUtcDateKey_(new Date(achievedAt)) === date;
+  }
+  return normalizeScoreDate_(row[4], timezone) === date;
 }
 
 function normalizeScoreDate_(value, timezone) {
