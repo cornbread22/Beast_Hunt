@@ -504,6 +504,29 @@
       margin: 12px 0 0;
     }
 
+    .android-download {
+      margin: 20px 0 0;
+      color: #b7c8cb;
+    }
+
+    .android-download a {
+      display: inline-flex;
+      min-height: 44px;
+      align-items: center;
+      margin-left: 8px;
+      padding: 8px 14px;
+      border: 1px solid var(--md-outline);
+      border-radius: 12px;
+      background: var(--md-surface);
+      color: var(--md-primary);
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    .android-download a:hover {
+      background: #192225;
+    }
+
     .cutscene-overlay {
       position: fixed;
       z-index: 10;
@@ -1044,6 +1067,9 @@
       </div>
       <p id="leaderboard-status" role="status" aria-live="polite"></p>
     </section>
+    <p class="android-download">download for android:
+      <a href="Beast_Hunt_v1.0.0.APK" download>Download APK</a>
+    </p>
   </main>
   <div id="cutscene" class="cutscene-overlay" role="dialog" aria-modal="true" aria-labelledby="cutscene-title" hidden>
     <div class="cutscene-card">
