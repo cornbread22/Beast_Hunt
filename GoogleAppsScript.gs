@@ -91,7 +91,8 @@ function submitScore_(params) {
       throw new Error("Save a nickname before submitting a score.");
     }
 
-    const today = Utilities.formatDate(new Date(), "UTC", "yyyy-MM-dd");
+    const today = getUtcDateKey_();
+    const spreadsheetTimezone = getSpreadsheet_().getSpreadsheetTimeZone();
     const sheet = getSheet_("Scores");
     const rows = sheet.getDataRange().getValues();
     const updatedIndexes = [];
@@ -103,10 +104,11 @@ function submitScore_(params) {
         && row[1] === difficulty
         && Number(row[2]) === mapSize
         && row[3] === period
-        && row[4] === date
+        && normalizeScoreDate_(row[4], spreadsheetTimezone) === date
       );
       if (existingIndex === -1) {
-        rows.push([playerId, difficulty, mapSize, period, date, moves, Date.now()]);
+        const storedDate = period === "daily" ? `UTC:${date}` : date;
+        rows.push([playerId, difficulty, mapSize, period, storedDate, moves, Date.now()]);
       } else if (moves < Number(rows[existingIndex][5])) {
         rows[existingIndex][5] = moves;
         rows[existingIndex][6] = Date.now();
@@ -131,9 +133,8 @@ function getLeaderboard_(params) {
   const difficulty = String(params.difficulty || "");
   const mapSize = Number(params.mapSize);
   const period = String(params.period || "");
-  const date = period === "daily"
-    ? Utilities.formatDate(new Date(), "UTC", "yyyy-MM-dd")
-    : "all";
+  const date = period === "daily" ? getUtcDateKey_() : "all";
+  const spreadsheetTimezone = getSpreadsheet_().getSpreadsheetTimeZone();
   if (!["easy", "normal", "hard", "impossible"].includes(difficulty)
     || ![7, 9, 11].includes(mapSize)
     || !["daily", "overall"].includes(period)) {
@@ -148,7 +149,7 @@ function getLeaderboard_(params) {
       row[1] === difficulty
       && Number(row[2]) === mapSize
       && row[3] === period
-      && row[4] === date
+      && normalizeScoreDate_(row[4], spreadsheetTimezone) === date
       && nicknames.has(row[0])
     )
     .map(row => ({
@@ -163,6 +164,31 @@ function getLeaderboard_(params) {
     .map(({ nickname, moves, is_you }) => ({ nickname, moves, is_you }));
 }
 
+function getUtcDateKey_() {
+  return Utilities.formatDate(new Date(), "UTC", "yyyy-MM-dd");
+}
+
+function normalizeScoreDate_(value, timezone) {
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return Utilities.formatDate(value, timezone, "yyyy-MM-dd");
+  }
+  const text = String(value || "");
+  const date = text.match(/^(?:UTC:)?(\d{4}-\d{2}-\d{2})$/);
+  if (date) return date[1];
+  const parsed = new Date(text);
+  return Number.isNaN(parsed.getTime())
+    ? text
+    : Utilities.formatDate(parsed, timezone, "yyyy-MM-dd");
+}
+
+function getSpreadsheet_() {
+  const spreadsheetId = PropertiesService.getScriptProperties().getProperty("SPREADSHEET_ID");
+  if (!spreadsheetId) {
+    throw new Error("Run setupLeaderboard once from the Apps Script editor first.");
+  }
+  return SpreadsheetApp.openById(spreadsheetId);
+}
+
 function validatePlayerId_(value) {
   const playerId = String(value || "");
   if (!/^[A-Za-z0-9_-]{10,80}$/.test(playerId)) {
@@ -172,12 +198,7 @@ function validatePlayerId_(value) {
 }
 
 function getSheet_(name) {
-  const spreadsheetId = PropertiesService.getScriptProperties().getProperty("SPREADSHEET_ID");
-  if (!spreadsheetId) {
-    throw new Error("Run setupLeaderboard once from the Apps Script editor first.");
-  }
-  const spreadsheet = SpreadsheetApp.openById(spreadsheetId);
-  const sheet = spreadsheet.getSheetByName(name);
+  const sheet = getSpreadsheet_().getSheetByName(name);
   if (!sheet) {
     throw new Error(`Missing ${name} sheet. Run setupLeaderboard again.`);
   }
