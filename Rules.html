@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>How to Play - Beast Hunt</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      background: #000;
+      color: #e6f4f6;
+      --md-primary: #4dd0e1;
+      --md-on-primary: #002026;
+      --md-outline: #47575b;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      display: grid;
+      min-height: 100vh;
+      place-items: center;
+      margin: 0;
+      padding: 20px;
+    }
+
+    main {
+      width: min(100%, 620px);
+      padding: clamp(20px, 5vw, 36px);
+      border: 1px solid #26373a;
+      border-radius: 16px;
+      background: #101416;
+    }
+
+    h1 {
+      margin: 0 0 20px;
+      text-align: center;
+    }
+
+    h2 {
+      margin: 24px 0 8px;
+      color: var(--md-primary);
+      font-size: 1.15rem;
+    }
+
+    p,
+    li {
+      color: #b7c8cb;
+      line-height: 1.6;
+    }
+
+    .legend {
+      display: grid;
+      gap: 12px;
+      margin: 0;
+      padding: 0;
+      color: #d0e0e2;
+      list-style: none;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .legend-mark {
+      width: 20px;
+      height: 20px;
+      display: inline-block;
+      flex: 0 0 auto;
+    }
+
+    .legend-beast {
+      border-radius: 50%;
+      background: #e24646;
+    }
+
+    .legend-hole {
+      border: 3px solid #53d27a;
+      border-radius: 50%;
+    }
+
+    .legend-player {
+      border: 2px solid #52c7f2;
+      border-radius: 50%;
+    }
+
+    .legend-unvisited {
+      border: 1px solid #60727e;
+      border-radius: 3px;
+      background: #1b2931;
+    }
+
+    .legend-visited {
+      border: 1px solid #8ba9b5;
+      border-radius: 3px;
+      background: #3b5360;
+    }
+
+    .legend-river {
+      display: grid;
+      place-items: center;
+      border: 1px solid #458ba3;
+      border-radius: 3px;
+      background: #17475a;
+      color: #8bdcf2;
+      font-weight: 800;
+    }
+
+    ul {
+      padding-left: 22px;
+    }
+
+    a {
+      display: inline-flex;
+      min-height: 48px;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 18px;
+      border-radius: 999px;
+      background: var(--md-primary);
+      color: var(--md-on-primary);
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    a:focus-visible {
+      outline: 2px solid var(--md-primary);
+      outline-offset: 3px;
+    }
+
+    nav {
+      margin-top: 24px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>How to Play Beast Hunt</h1>
+
+    <h2>Goal</h2>
+    <p>
+      Find the beast using the clues, then shoot it from an adjacent tile.
+      Touching a hole or the beast, or firing in the wrong direction, ends the game.
+    </p>
+
+    <h2>Clues</h2>
+    <ul>
+      <li>A red center means the beast is within 2 moves.</li>
+      <li>A green ring means a hole is within 1 move.</li>
+      <li>Clues are revealed when you visit a tile and remain visible afterward.</li>
+      <li>Unvisited tiles and visited safe tiles have different backgrounds.</li>
+    </ul>
+
+    <h2>Legend</h2>
+    <ul class="legend" aria-label="Game legend">
+      <li class="legend-item"><span class="legend-mark legend-beast" aria-hidden="true"></span>Red center: beast within 2 moves</li>
+      <li class="legend-item"><span class="legend-mark legend-hole" aria-hidden="true"></span>Green ring: hole within 1 move</li>
+      <li class="legend-item"><span class="legend-mark legend-unvisited" aria-hidden="true"></span>Unvisited tile</li>
+      <li class="legend-item"><span class="legend-mark legend-visited" aria-hidden="true"></span>Visited safe tile</li>
+      <li class="legend-item"><span class="legend-mark legend-player" aria-hidden="true"></span>Your position</li>
+      <li class="legend-item"><span class="legend-mark legend-river" aria-hidden="true">≈</span>River: carries you to the opposite bank</li>
+    </ul>
+
+    <h2>Controls and board</h2>
+    <ul>
+      <li>On desktop, use the arrow keys to move and aim.</li>
+      <li>On touch devices, swipe the board to move. While aiming, swipe to change direction.</li>
+      <li>Touch devices can also use the on-screen arrows.</li>
+      <li>The board wraps around when you move past an edge.</li>
+      <li>Enter a curved river to teleport to its opposite bank.</li>
+      <li>Your arrow flies toward the adjacent tile. A missed shot or bumping into the beast triggers its fire-breathing cutscene.</li>
+      <li>Select <strong>Shoot</strong>, choose a direction, then select <strong>Fire arrow</strong>.</li>
+      <li>The beast must be on the immediately adjacent tile in the direction you shoot.</li>
+      <li>Select <strong>Restart game</strong> at any time to start a new hunt.</li>
+    </ul>
+
+    <h2>Difficulty</h2>
+    <ul>
+      <li><strong>Easy:</strong> fewer holes; holes are at least 3 moves apart.</li>
+      <li><strong>Normal:</strong> more holes than before; holes are at least 2 moves apart.</li>
+      <li><strong>Hard:</strong> many holes that can be next to each other.</li>
+      <li><strong>Impossible:</strong> a dense field of holes, including beside your starting tile.</li>
+      <li><strong>Map size:</strong> choose a 7 x 7, 9 x 9, or 11 x 11 board. Larger boards contain more holes; small maps have one river while medium and large maps have two.</li>
+      <li>Separate rivers are placed so they do not touch, including across wrapped edges.</li>
+    </ul>
+
+    <h2>High scores</h2>
+    <p>
+      The online boards rank the top 10 wins by fewest moves for each difficulty and map size.
+      Daily scores use the UTC calendar day; overall scores keep each player's all-time best.
+      Choose a nickname to compete. Your anonymous identity stays in this browser and is not
+      recoverable if its browser data is cleared. The leaderboard uses a public Google Apps Script endpoint.
+    </p>
+
+    <nav aria-label="Game navigation">
+      <a href="BeasthuntGame.html">Back to game</a>
+    </nav>
+  </main>
+</body>
+</html>
