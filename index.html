@@ -1223,6 +1223,7 @@
     let aiming;
     let aimDirection;
     let discoveredTiles;
+    let lastRiverCrossing;
     let leaderboardPlayerId = "";
     let currentNickname = "";
     const pendingWinningScores = [];
@@ -1578,6 +1579,7 @@
       gameOver = false;
       aiming = false;
       aimDirection = directions.ArrowUp;
+      lastRiverCrossing = null;
       discoveredTiles = new Set([tileKey(player.x, player.y)]);
       restartButton.textContent = "Restart game";
       syncAimControls();
@@ -1786,33 +1788,60 @@
     function move(dx, dy) {
       if (gameOver || aiming) return;
 
-      const x = wrap(player.x + dx);
-      const y = wrap(player.y + dy);
       const previous = { ...player };
-      player = { x, y };
-      moves++;
+      const reverseRiverCrossing = lastRiverCrossing
+        && player.x === lastRiverCrossing.to.x
+        && player.y === lastRiverCrossing.to.y
+        && dx === -lastRiverCrossing.dx
+        && dy === -lastRiverCrossing.dy;
+      let crossedRiver = false;
+      if (reverseRiverCrossing) {
+        player = { ...lastRiverCrossing.from };
+        lastRiverCrossing = {
+          from: previous,
+          to: { ...player },
+          dx,
+          dy
+        };
+        crossedRiver = true;
+        moves++;
+      } else {
+        const x = wrap(player.x + dx);
+        const y = wrap(player.y + dy);
+        player = { x, y };
+        moves++;
 
-      const river = rivers.find(candidate =>
-        candidate.cells.some(cell => cell.x === x && cell.y === y)
-      );
-      if (river) {
-        const index = river.cells.findIndex(cell => cell.x === x && cell.y === y);
-        const previousIndex = river.cells.findIndex(cell =>
-          cell.x === previous.x && cell.y === previous.y
+        const river = rivers.find(candidate =>
+          candidate.cells.some(cell => cell.x === x && cell.y === y)
         );
-        let destination;
-        if (previousIndex !== -1) {
-          destination = previousIndex < index
-            ? river.cells[0]
-            : river.cells[river.cells.length - 1];
+        if (river) {
+          const index = river.cells.findIndex(cell => cell.x === x && cell.y === y);
+          const previousIndex = river.cells.findIndex(cell =>
+            cell.x === previous.x && cell.y === previous.y
+          );
+          let destination;
+          if (previousIndex !== -1) {
+            destination = previousIndex < index
+              ? river.cells[0]
+              : river.cells[river.cells.length - 1];
+          } else {
+            const first = river.cells[0];
+            const last = river.cells[river.cells.length - 1];
+            destination = distance(previous, first) <= distance(previous, last)
+              ? last
+              : first;
+          }
+          player = { ...destination };
+          lastRiverCrossing = {
+            from: previous,
+            to: { ...player },
+            dx,
+            dy
+          };
+          crossedRiver = true;
         } else {
-          const first = river.cells[0];
-          const last = river.cells[river.cells.length - 1];
-          destination = distance(previous, first) <= distance(previous, last)
-            ? last
-            : first;
+          lastRiverCrossing = null;
         }
-        player = { ...destination };
       }
 
       const finalX = player.x;
@@ -1827,7 +1856,7 @@
       }
 
       discoveredTiles.add(tileKey(finalX, finalY));
-      message.textContent = river ? "The river carried you to the opposite bank." : "";
+      message.textContent = crossedRiver ? "The river carried you to the opposite bank." : "";
       render();
     }
 
